@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบการลา — ภาควิชาเวชศาสตร์การธนาคารเลือด</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  color: white; padding: 16px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  box-shadow: 0 2px 12px rgba(30,58,138,0.35);
+}
+header h1 { font-size: 1.25rem; font-weight: 700; }
+header p  { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+.refresh-btn {
+  background: rgba(255,255,255,0.15); color: white;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  padding: 6px 14px; border-radius: 7px; font-size: 0.8rem;
+  font-weight: 600; cursor: pointer;
+}
+.refresh-btn:hover { background: rgba(255,255,255,0.25); }
+.sync-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; opacity: 0.85; padding: 4px 10px;
+  background: rgba(255,255,255,0.12); border-radius: 20px;
+}
+
+/* ── Settings Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500; padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: white; border-radius: 16px; padding: 28px;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+}
+.modal h2 { font-size: 1.05rem; font-weight: 700; color: #1e3a8a; margin-bottom: 6px; }
+.modal p  { font-size: 0.82rem; color: #6b7280; margin-bottom: 18px; line-height: 1.5; }
+.modal label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+.modal input {
+  width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db;
+  border-radius: 8px; font-size: 0.88rem; font-family: inherit; margin-bottom: 12px;
+}
+.modal input:focus { outline: none; border-color: #1d4ed8; }
+.modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+.btn-primary { background: #1d4ed8; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-primary:hover { background: #1e40af; }
+.btn-secondary { background: #f3f4f6; color: #374151; border: 1.5px solid #d1d5db; padding: 10px 16px; border-radius: 8px; font-size: 0.88rem; cursor: pointer; }
+.btn-secondary:hover { background: #e5e7eb; }
+.modal-note { font-size: 0.75rem; color: #6b7280; margin-top: 12px; line-height: 1.6; }
+.modal-note a { color: #1d4ed8; }
+
+/* ── Tabs ── */
+.tab-bar {
+  background: white; border-bottom: 2px solid #e5e7eb;
+  display: flex; padding: 0 20px; gap: 4px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.tab-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 14px 20px; font-size: 0.88rem; font-weight: 600;
+  color: #6b7280; border-bottom: 3px solid transparent;
+  margin-bottom: -2px; transition: all 0.15s; white-space: nowrap;
+}
+.tab-btn:hover { color: #1d4ed8; }
+.tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+.container { max-width: 1060px; margin: 0 auto; padding: 22px 18px; }
+
+/* ── Cards ── */
+.card {
+  background: white; border-radius: 12px;
+  padding: 22px 26px; margin-bottom: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+.card h2 { font-size: 1rem; font-weight: 700; color: #1e3a8a; margin-bottom: 16px; }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 14px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1/-1; }
+label { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+input, select, textarea {
+  padding: 9px 12px; border: 1.5px solid #d1d5db;
+  border-radius: 8px; font-size: 0.88rem; font-family: inherit;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #1d4ed8; }
+textarea { resize: vertical; min-height: 68px; }
+.days-badge {
+  display: inline-block; background: #dbeafe; color: #1e40af;
+  padding: 5px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; margin-top: 6px;
+}
+.form-actions { display: flex; gap: 10px; margin-top: 18px; }
+.btn-save {
+  background: #1d4ed8; color: white; border: none;
+  padding: 10px 26px; border-radius: 8px; font-size: 0.9rem;
+  font-weight: 700; cursor: pointer;
+}
+.btn-save:hover { background: #1e40af; }
+.btn-clear {
+  background: #f3f4f6; color: #374151; border: 1.5px solid #d1d5db;
+  padding: 10px 18px; border-radius: 8px; font-size: 0.88rem; cursor: pointer;
+}
+.btn-clear:hover { background: #e5e7eb; }
+#meeting-field {
+  background: #eff6ff; border: 1.5px solid #bfdbfe;
+  border-radius: 10px; padding: 12px 14px;
+}
+#meeting-field label { color: #1e40af; }
+#meeting-field textarea { border-color: #93c5fd; background: white; }
+
+/* Leave badges */
+.leave-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.leave-sick      { background: #fee2e2; color: #b91c1c; }
+.leave-vacation  { background: #dbeafe; color: #1e40af; }
+.leave-personal  { background: #fef3c7; color: #92400e; }
+.leave-meeting   { background: #cffafe; color: #0e7490; }
+.leave-maternity { background: #fce7f3; color: #9d174d; }
+.leave-ordination{ background: #ede9fe; color: #5b21b6; }
+.leave-other     { background: #f3f4f6; color: #374151; }
+
+/* ── Table ── */
+.table-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-row select, .filter-row input {
+  padding: 7px 10px; font-size: 0.8rem;
+  border: 1.5px solid #d1d5db; border-radius: 7px;
+}
+.btn-export {
+  background: #059669; color: white; border: none;
+  padding: 7px 14px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.btn-export:hover { background: #047857; }
+.btn-excel {
+  background: #16a34a; color: white; border: none;
+  padding: 7px 14px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-excel:hover { background: #15803d; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+thead th {
+  background: #eff6ff; color: #1e40af; font-weight: 700;
+  padding: 10px 12px; text-align: left; border-bottom: 2px solid #bfdbfe;
+}
+tbody tr { border-bottom: 1px solid #f0f0f0; }
+tbody tr:hover { background: #f8faff; }
+tbody td { padding: 9px 12px; vertical-align: middle; }
+.btn-del { background: none; border: none; cursor: pointer; color: #dc2626; font-size: 1rem; padding: 2px 6px; border-radius: 4px; }
+.btn-del:hover { background: #fee2e2; }
+.btn-gcal {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: white; border: 1.5px solid #1d4ed8; color: #1d4ed8;
+  padding: 3px 9px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+.btn-gcal:hover { background: #eff6ff; }
+.empty-state { text-align: center; padding: 36px; color: #9ca3af; font-size: 0.88rem; }
+.empty-state .icon { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+
+/* ── Calendar ── */
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: #f5f3ff; border-bottom: 1.5px solid #ddd6fe;
+}
+.cal-nav h2 { font-size: 1.05rem; font-weight: 700; color: #5b21b6; }
+.nav-btn {
+  background: white; border: 1.5px solid #ddd6fe; color: #5b21b6;
+  width: 32px; height: 32px; border-radius: 8px; font-size: 1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.nav-btn:hover { background: #ede9fe; }
+.today-btn {
+  background: #7c3aed; color: white; border: none;
+  padding: 5px 13px; border-radius: 7px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.today-btn:hover { background: #6d28d9; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 10px 10px; }
+.day-header { text-align: center; padding: 9px 4px 5px; font-size: 0.72rem; font-weight: 700; color: #7c3aed; text-transform: uppercase; }
+.day-header.weekend { color: #ef4444; }
+.day-cell {
+  min-height: 76px; padding: 5px 4px 4px; border: 1px solid #f3f4f6;
+  border-radius: 8px; margin: 2px; cursor: pointer; transition: background 0.12s;
+}
+.day-cell:hover { background: #faf5ff; box-shadow: 0 0 0 2px #ddd6fe; }
+.day-cell.other-month { opacity: 0.28; cursor: default; }
+.day-cell.other-month:hover { background: transparent; box-shadow: none; }
+.day-cell.today { background: #faf5ff; }
+.day-cell.today .day-num { background: #7c3aed; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.day-cell.weekend .day-num { color: #ef4444; }
+.day-cell.selected { background: #ede9fe; box-shadow: 0 0 0 2px #7c3aed; }
+.day-num { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 3px; }
+.leave-dots { display: flex; flex-wrap: wrap; gap: 2px; }
+.leave-dot { font-size: 0.68rem; padding: 1px 5px; border-radius: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.more-dot { background: #e5e7eb; color: #374151; font-size: 0.63rem; padding: 1px 4px; border-radius: 10px; }
+.dot-sick      { background: #fee2e2; color: #b91c1c; }
+.dot-vacation  { background: #dbeafe; color: #1e40af; }
+.dot-personal  { background: #fef3c7; color: #92400e; }
+.dot-meeting   { background: #cffafe; color: #0e7490; }
+.dot-maternity { background: #fce7f3; color: #9d174d; }
+.dot-ordination{ background: #ede9fe; color: #5b21b6; }
+.dot-other     { background: #f3f4f6; color: #374151; }
+.cal-legend {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 8px 18px; border-top: 1px solid #f3f4f6; font-size: 0.73rem; color: #6b7280;
+}
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* Detail */
+.detail-header {
+  padding: 13px 20px; background: #faf5ff; border-bottom: 1.5px solid #ede9fe;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.detail-header h3 { font-size: 0.95rem; font-weight: 700; color: #5b21b6; }
+.detail-body { padding: 14px 18px; }
+.leave-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 7px;
+  border: 1.5px solid #f3f4f6; background: #fafafa;
+}
+.leave-icon { font-size: 1.3rem; flex-shrink: 0; }
+.leave-info { flex: 1; }
+.leave-name { font-weight: 700; font-size: 0.92rem; }
+.leave-meta { font-size: 0.8rem; color: #6b7280; margin-top: 3px; }
+.leave-meta span { margin-right: 8px; }
+.leave-badge-sm { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; margin-left: 5px; }
+.detail-meeting { font-size: 0.78rem; color: #0e7490; margin-top: 3px; background: #cffafe; padding: 2px 7px; border-radius: 5px; display: inline-block; }
+.detail-note { font-size: 0.77rem; color: #6b7280; margin-top: 3px; font-style: italic; }
+
+/* ── Report ── */
+.date-bar {
+  background: white; border-radius: 12px; padding: 12px 18px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.06); margin-bottom: 18px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.date-bar label { font-size: 0.83rem; font-weight: 600; color: #374151; }
+.date-bar input[type=date] { padding: 7px 11px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 0.88rem; font-family: inherit; }
+.date-bar input:focus { outline: none; border-color: #0d9488; }
+.btn-today-rpt { background: #f0fdfa; color: #0f766e; border: 1.5px solid #99f6e4; padding: 6px 13px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.btn-today-rpt:hover { background: #ccfbf1; }
+.btn-print { background: #0f766e; color: white; border: none; padding: 7px 15px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.btn-print:hover { background: #0d9488; }
+
+.rpt-card { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 18px; }
+.rpt-header { background: #f0fdfa; border-bottom: 1.5px solid #99f6e4; padding: 13px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.rpt-header h2 { font-size: 0.98rem; font-weight: 700; color: #0f766e; }
+.count-badge { background: #0d9488; color: white; padding: 2px 11px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
+.count-badge.zero { background: #d1d5db; color: #6b7280; }
+.rpt-body { padding: 14px 18px; }
+.rpt-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 7px;
+  border: 1.5px solid #f3f4f6; background: #fafafa;
+}
+.rpt-info { flex: 1; }
+.rpt-name { font-weight: 700; font-size: 0.93rem; }
+.rpt-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+.rtag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; }
+.rtag-sick      { background: #fee2e2; color: #b91c1c; }
+.rtag-vacation  { background: #dbeafe; color: #1e40af; }
+.rtag-personal  { background: #fef3c7; color: #92400e; }
+.rtag-meeting   { background: #cffafe; color: #0e7490; }
+.rtag-maternity { background: #fce7f3; color: #9d174d; }
+.rtag-ordination{ background: #ede9fe; color: #5b21b6; }
+.rtag-other     { background: #f3f4f6; color: #374151; }
+.rtag-lab  { background: #ecfdf5; color: #065f46; }
+.rtag-date { background: #f0f9ff; color: #0369a1; }
+
+.line-card { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); overflow: hidden; }
+.line-header { background: #f0fdf4; border-bottom: 1.5px solid #bbf7d0; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+.line-header h3 { font-size: 0.92rem; font-weight: 700; color: #065f46; }
+.btn-copy { background: #16a34a; color: white; border: none; padding: 6px 14px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.btn-copy:hover { background: #15803d; }
+.btn-copy.copied { background: #6b7280; }
+.line-preview { margin: 14px 20px; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; font-size: 0.85rem; line-height: 1.8; white-space: pre-wrap; color: #374151; font-family: inherit; max-height: 320px; overflow-y: auto; }
+
+/* ── Toast ── */
+#toast { position: fixed; bottom: 24px; right: 24px; background: #1e3a8a; color: white; padding: 10px 20px; border-radius: 8px; font-size: 0.87rem; transform: translateY(60px); opacity: 0; transition: all 0.25s; z-index: 999; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: #059669; }
+#toast.error { background: #dc2626; }
+
+/* ── Print ── */
+@media print {
+  header, .tab-bar, .form-actions, .btn-print, .btn-copy, .line-card, .filter-row, .btn-export, #toast { display: none !important; }
+  body { background: white; }
+  .container { padding: 0; max-width: 100%; }
+  .rpt-row, .leave-item { break-inside: avoid; }
+}
+
+@media (max-width: 600px) {
+  header { padding: 12px 14px; }
+  .tab-btn { padding: 12px 12px; font-size: 0.8rem; }
+  .container { padding: 14px 10px; }
+  .day-cell { min-height: 58px; }
+  .leave-dot { display: none; }
+}
+
+/* ── Login Screen ── */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+#login-screen.hidden { display: none; }
+.login-box {
+  background: white; border-radius: 20px; padding: 40px 36px;
+  width: 100%; max-width: 380px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-box .logo {
+  font-size: 2.5rem; margin-bottom: 8px;
+}
+.login-box h2 {
+  font-size: 1.05rem; font-weight: 700; color: #1e3a8a;
+  margin-bottom: 4px;
+}
+.login-box p {
+  font-size: 0.78rem; color: #6b7280; margin-bottom: 28px;
+}
+.login-field {
+  text-align: left; margin-bottom: 16px;
+}
+.login-field label {
+  display: block; font-size: 0.78rem; font-weight: 600;
+  color: #374151; margin-bottom: 5px;
+}
+.login-field input {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid #d1d5db; border-radius: 8px;
+  font-size: 0.9rem; outline: none; transition: border 0.2s;
+}
+.login-field input:focus { border-color: #1d4ed8; }
+.login-error {
+  color: #dc2626; font-size: 0.8rem; margin-bottom: 12px;
+  min-height: 18px;
+}
+.btn-login {
+  width: 100%; padding: 11px;
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  color: white; border: none; border-radius: 9px;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-login:hover { opacity: 0.88; }
+.btn-logout {
+  background: rgba(255,255,255,0.15); color: white;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  padding: 6px 14px; border-radius: 7px; font-size: 0.8rem;
+  font-weight: 600; cursor: pointer;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.25); }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="logo">🏥</div>
+    <h2>ระบบการลา</h2>
+    <p>ภาควิชาเวชศาสตร์การธนาคารเลือด</p>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-id" placeholder="กรอก Username" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pw" placeholder="กรอก Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn-login" onclick="doLogin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay hidden" id="settings-modal">
+  <div class="modal">
+    <h2>☁️ ตั้งค่าซิงค์ข้อมูล (JSONBin)</h2>
+    <p>กรอก Bin ID และ Master Key จาก jsonbin.io เพื่อให้ข้อมูลซิงค์ได้จากทุกเครื่อง</p>
+    <label>Bin ID</label>
+    <input type="text" id="cfg-binid" placeholder="เช่น 6849a1234abc5d0012345678">
+    <label>Master Key (X-Master-Key)</label>
+    <input type="password" id="cfg-key" placeholder="$2a$10$...">
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveConfig()">💾 บันทึกและเชื่อมต่อ</button>
+      <button class="btn-secondary" onclick="closeSettings()">ยกเลิก</button>
+    </div>
+    <p class="modal-note">
+      📌 สมัครฟรีที่ <a href="https://jsonbin.io" target="_blank">jsonbin.io</a>
+      → สร้าง Bin ใหม่ → คัดลอก Bin ID และ Master Key มาใส่ที่นี่<br>
+      ข้อมูล Bin ID และ Key จะเก็บอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น
+    </p>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>🏥 ระบบการลา</h1>
+    <p>ภาควิชาเวชศาสตร์การธนาคารเลือด</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="sync-status" id="sync-status">⚪ ยังไม่ได้ตั้งค่าซิงค์</span>
+    <button class="refresh-btn" onclick="refreshAll()">🔄 รีเฟรช</button>
+    <button class="refresh-btn" onclick="openSettings()">☁️ ตั้งค่าซิงค์</button>
+    <button class="btn-logout" onclick="doLogout()">🚪 ออกจากระบบ</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('cal')">📅 ปฏิทินการลา</button>
+  <button class="tab-btn" onclick="switchTab('form')">➕ ยื่นลา</button>
+  <button class="tab-btn" onclick="switchTab('list')">📂 ประวัติการลา</button>
+  <button class="tab-btn" onclick="switchTab('report')">📋 รายงานประจำวัน</button>
+</div>
+
+<!-- ════════════ TAB: CALENDAR ════════════ -->
+<div id="tab-cal" class="panel active">
+  <div class="container">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="cal-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <h2 id="cal-title"></h2>
+          <button class="today-btn" onclick="calToday()">วันนี้</button>
+        </div>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <span style="font-weight:600;color:#374151">สัญลักษณ์:</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#ef4444"></span>ลาป่วย</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#3b82f6"></span>ลาพักร้อน</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#f59e0b"></span>ลากิจ</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#06b6d4"></span>ลาประชุม</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#8b5cf6"></span>ลาอื่นๆ</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="detail-header">
+        <h3 id="detail-title">กดเลือกวันในปฏิทินเพื่อดูรายละเอียด</h3>
+        <span id="detail-count" style="font-size:0.8rem;color:#7c3aed;font-weight:700"></span>
+      </div>
+      <div class="detail-body" id="detail-body">
+        <div class="empty-state"><span class="icon">📅</span>กดที่วันใดก็ได้เพื่อดูรายการลา</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TAB: FORM ════════════ -->
+<div id="tab-form" class="panel">
+  <div class="container">
+    <div class="card">
+      <h2>➕ บันทึกการลา</h2>
+      <form id="leave-form" onsubmit="handleSubmit(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล *</label>
+            <input type="text" id="f-name" placeholder="กรอกชื่อ-นามสกุล" required>
+          </div>
+          <div class="form-group">
+            <label>ห้องปฏิบัติการ *</label>
+            <input type="text" id="f-lab" placeholder="เช่น ห้องธนาคารเลือด" required>
+          </div>
+          <div class="form-group">
+            <label>ประเภทการลา *</label>
+            <select id="f-type" required onchange="toggleMeetingField()">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="ลาป่วย">🤒 ลาป่วย</option>
+              <option value="ลาพักร้อน">🏖️ ลาพักร้อน</option>
+              <option value="ลากิจ">📝 ลากิจ</option>
+              <option value="ลาประชุม">🎤 ลาประชุม</option>
+              <option value="ลาคลอด">🤱 ลาคลอด</option>
+              <option value="ลาบวช">🙏 ลาบวช</option>
+              <option value="ลาอื่นๆ">📌 ลาอื่นๆ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>วันที่เริ่มลา *</label>
+            <input type="date" id="f-start" required onchange="calcDays()">
+          </div>
+          <div class="form-group">
+            <label>วันที่สิ้นสุด *</label>
+            <input type="date" id="f-end" required onchange="calcDays()">
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <label>จำนวนวัน</label>
+            <span class="days-badge" id="days-display">— วัน</span>
+          </div>
+          <div class="form-group full" id="meeting-field" style="display:none">
+            <label>รายละเอียดการประชุม *</label>
+            <textarea id="f-meeting" placeholder="เช่น ชื่อการประชุม, สถานที่, หน่วยงานที่จัด"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>หมายเหตุ / เหตุผล</label>
+            <textarea id="f-note" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-save">💾 บันทึก</button>
+          <button type="button" class="btn-clear" onclick="clearForm()">ล้างฟอร์ม</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TAB: LIST ════════════ -->
+<div id="tab-list" class="panel">
+  <div class="container">
+    <div class="card">
+      <div class="table-header">
+        <h2 style="margin-bottom:0">📂 ประวัติการลาทั้งหมด</h2>
+        <div class="filter-row">
+          <input type="text" id="search-name" placeholder="🔍 ค้นหาชื่อ" oninput="renderTable()">
+          <select id="filter-type" onchange="renderTable()">
+            <option value="">ทุกประเภท</option>
+            <option value="ลาป่วย">ลาป่วย</option>
+            <option value="ลาพักร้อน">ลาพักร้อน</option>
+            <option value="ลากิจ">ลากิจ</option>
+            <option value="ลาประชุม">ลาประชุม</option>
+            <option value="ลาคลอด">ลาคลอด</option>
+            <option value="ลาบวช">ลาบวช</option>
+            <option value="ลาอื่นๆ">ลาอื่นๆ</option>
+          </select>
+          <button class="btn-export" onclick="exportCSV()">⬇️ CSV</button>
+          <button class="btn-excel" onclick="exportExcel()">📊 Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>ชื่อ-นามสกุล</th><th>ห้องปฏิบัติการ</th>
+              <th>ประเภทการลา</th><th>วันที่เริ่ม</th><th>วันที่สิ้นสุด</th>
+              <th>วัน</th><th>หมายเหตุ</th><th>Calendar</th><th style="width:32px"></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div id="empty-state" class="empty-state" style="display:none">
+          <span class="icon">📭</span>ยังไม่มีรายการบันทึกการลา
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TAB: REPORT ════════════ -->
+<div id="tab-report" class="panel">
+  <div class="container">
+    <div class="date-bar">
+      <label>เลือกวันที่</label>
+      <input type="date" id="report-date" onchange="renderReport()">
+      <button class="btn-today-rpt" onclick="reportToday()">วันนี้</button>
+      <button class="btn-print" onclick="window.print()">🖨️ พิมพ์ / PDF</button>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-header">
+        <h2 id="rpt-title">รายการลา</h2>
+        <span class="count-badge zero" id="rpt-badge">0 คน</span>
+      </div>
+      <div class="rpt-body" id="rpt-body"></div>
+    </div>
+
+    <div class="line-card">
+      <div class="line-header">
+        <h3>💬 ข้อความสำหรับส่ง Line</h3>
+        <button class="btn-copy" id="copy-btn" onclick="copyLine()">📋 คัดลอก</button>
+      </div>
+      <div class="line-preview" id="line-preview"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════ DATA ══════════
+let records = [];
+let isSaving = false;
+
+// JSONBin config (stored in localStorage per device)
+function getCfg() {
+  return {
+    binId: localStorage.getItem('jb_binid') || '',
+    key:   localStorage.getItem('jb_key')   || ''
+  };
+}
+function hasCfg() { const c=getCfg(); return c.binId && c.key; }
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  const icons = { ok:'🟢', loading:'⏳', error:'🔴', off:'⚪' };
+  el.textContent = (icons[state]||'⚪') + ' ' + msg;
+}
+
+// Load: JSONBin first, fallback to localStorage
+async function loadData() {
+  if (!hasCfg()) {
+    records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+    setSyncStatus('off', 'ยังไม่ได้ตั้งค่าซิงค์');
+    return;
+  }
+  setSyncStatus('loading', 'กำลังโหลด...');
+  try {
+    const { binId, key } = getCfg();
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+      headers: { 'X-Master-Key': key }
+    });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    records = data.record.leaveRecords || [];
+    // mirror to localStorage as offline backup
+    localStorage.setItem('leaveRecords', JSON.stringify(records));
+    setSyncStatus('ok', `ซิงค์แล้ว (${records.length} รายการ)`);
+  } catch(e) {
+    // fallback to local cache
+    records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+    setSyncStatus('error', 'โหลดจากคลาวด์ไม่ได้ — ใช้ข้อมูลในเครื่อง');
+  }
+}
+
+// Save: JSONBin first, always mirror to localStorage
+async function saveData() {
+  localStorage.setItem('leaveRecords', JSON.stringify(records));
+  if (!hasCfg()) return;
+  if (isSaving) return;
+  isSaving = true;
+  setSyncStatus('loading', 'กำลังบันทึก...');
+  try {
+    const { binId, key } = getCfg();
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+      body: JSON.stringify({ leaveRecords: records })
+    });
+    if (!res.ok) throw new Error(res.status);
+    setSyncStatus('ok', `ซิงค์แล้ว (${records.length} รายการ)`);
+  } catch(e) {
+    setSyncStatus('error', 'บันทึกคลาวด์ไม่สำเร็จ — เก็บในเครื่องแทน');
+  }
+  isSaving = false;
+}
+
+// Settings modal
+function openSettings() {
+  const { binId, key } = getCfg();
+  document.getElementById('cfg-binid').value = binId;
+  document.getElementById('cfg-key').value = key;
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() {
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+async function saveConfig() {
+  const binId = document.getElementById('cfg-binid').value.trim();
+  const key   = document.getElementById('cfg-key').value.trim();
+  if (!binId || !key) { showToast('กรุณากรอกให้ครบ','error'); return; }
+  localStorage.setItem('jb_binid', binId);
+  localStorage.setItem('jb_key', key);
+  closeSettings();
+  showToast('บันทึกการตั้งค่าแล้ว — กำลังโหลดข้อมูลจากคลาวด์...','success');
+  await loadData();
+  renderCalendar(); renderTable();
+  if (selectedDate) renderDetail(selectedDate);
+  const rd = document.getElementById('report-date').value;
+  if (rd) renderReport();
+}
+
+// ══════════ CONFIG ══════════
+const TYPE_ICONS = {'ลาป่วย':'🤒','ลาพักร้อน':'🏖️','ลากิจ':'📝','ลาประชุม':'🎤','ลาคลอด':'🤱','ลาบวช':'🙏','ลาอื่นๆ':'📌'};
+const TYPE_CLS   = {'ลาป่วย':'leave-sick','ลาพักร้อน':'leave-vacation','ลากิจ':'leave-personal','ลาประชุม':'leave-meeting','ลาคลอด':'leave-maternity','ลาบวช':'leave-ordination','ลาอื่นๆ':'leave-other'};
+const DOT_CLS    = {'ลาป่วย':'dot-sick','ลาพักร้อน':'dot-vacation','ลากิจ':'dot-personal','ลาประชุม':'dot-meeting','ลาคลอด':'dot-maternity','ลาบวช':'dot-ordination','ลาอื่นๆ':'dot-other'};
+const RTAG_CLS   = {'ลาป่วย':'rtag-sick','ลาพักร้อน':'rtag-vacation','ลากิจ':'rtag-personal','ลาประชุม':'rtag-meeting','ลาคลอด':'rtag-maternity','ลาบวช':'rtag-ordination','ลาอื่นๆ':'rtag-other'};
+const BADGE_STYLE= {'ลาป่วย':'background:#fee2e2;color:#b91c1c','ลาพักร้อน':'background:#dbeafe;color:#1e40af','ลากิจ':'background:#fef3c7;color:#92400e','ลาประชุม':'background:#cffafe;color:#0e7490','ลาคลอด':'background:#fce7f3;color:#9d174d','ลาบวช':'background:#ede9fe;color:#5b21b6','ลาอื่นๆ':'background:#f3f4f6;color:#374151'};
+const TH_MONTHS  = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_MS      = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const DAY_NAMES  = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+// ══════════ AUTH ══════════
+const AUTH_ID = 'nuttawit.kan';
+const AUTH_PW = 'Minnie@61';
+
+async function doLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (id === AUTH_ID && pw === AUTH_PW) {
+    sessionStorage.setItem('auth', '1');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-error').textContent = '';
+    // โหลดข้อมูลหลัง login
+    await loadData();
+    renderCalendar();
+    renderTable();
+    reportToday();
+    setDefaultDates();
+  } else {
+    document.getElementById('login-error').textContent = '❌ Username หรือ Password ไม่ถูกต้อง';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function doLogout() {
+  if (!confirm('ต้องการออกจากระบบ?')) return;
+  sessionStorage.removeItem('auth');
+  document.getElementById('login-id').value = '';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ══════════ INIT ══════════
+const today = new Date();
+let calYear = today.getFullYear(), calMonth = today.getMonth(), selectedDate = null;
+
+window.onload = async () => {
+  // Check auth
+  if (!sessionStorage.getItem('auth')) {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('login-id').focus();
+    return;
+  }
+  document.getElementById('login-screen').classList.add('hidden');
+  await loadData();
+  renderCalendar();
+  renderTable();
+  reportToday();
+  setDefaultDates();
+};
+
+window.addEventListener('focus', refreshAll);
+
+async function refreshAll() {
+  await loadData();
+  renderCalendar();
+  renderTable();
+  if (selectedDate) renderDetail(selectedDate);
+  const rd = document.getElementById('report-date').value;
+  if (rd) renderReport();
+}
+
+// ══════════ TABS ══════════
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ══════════ HELPERS ══════════
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDate(str) {
+  if (!str) return '—';
+  const [y,m,d] = str.split('-');
+  return `${parseInt(d)} ${TH_MS[parseInt(m)]} ${parseInt(y)+543}`;
+}
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type ? `show ${type}` : 'show';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className='', 2800);
+}
+function onDate(dateStr) {
+  return records.filter(r => dateStr >= r.start && dateStr <= r.end);
+}
+
+// ══════════ FORM ══════════
+function setDefaultDates() {
+  const s = toDateStr(today);
+  document.getElementById('f-start').value = s;
+  document.getElementById('f-end').value = s;
+  calcDays();
+}
+function calcDays() {
+  const s = document.getElementById('f-start').value;
+  const e = document.getElementById('f-end').value;
+  const el = document.getElementById('days-display');
+  if (!s || !e) { el.textContent = '— วัน'; return; }
+  const diff = (new Date(e) - new Date(s)) / 86400000 + 1;
+  el.textContent = diff < 1 ? '❌ วันที่ไม่ถูกต้อง' : diff + ' วัน';
+}
+function toggleMeetingField() {
+  const type = document.getElementById('f-type').value;
+  const field = document.getElementById('meeting-field');
+  const ta = document.getElementById('f-meeting');
+  if (type === 'ลาประชุม') { field.style.display = 'flex'; ta.required = true; }
+  else { field.style.display = 'none'; ta.required = false; ta.value = ''; }
+}
+function clearForm() {
+  document.getElementById('leave-form').reset();
+  document.getElementById('days-display').textContent = '— วัน';
+  document.getElementById('meeting-field').style.display = 'none';
+  document.getElementById('f-meeting').required = false;
+}
+async function handleSubmit(e) {
+  e.preventDefault();
+  const start = document.getElementById('f-start').value;
+  const end   = document.getElementById('f-end').value;
+  if (new Date(end) < new Date(start)) { showToast('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น','error'); return; }
+  const days = (new Date(end) - new Date(start)) / 86400000 + 1;
+  const type = document.getElementById('f-type').value;
+  const record = {
+    id: Date.now().toString(),
+    name: document.getElementById('f-name').value.trim(),
+    lab:  document.getElementById('f-lab').value.trim(),
+    type, start, end, days,
+    meeting: type === 'ลาประชุม' ? document.getElementById('f-meeting').value.trim() : '',
+    note: document.getElementById('f-note').value.trim(),
+    createdAt: new Date().toLocaleString('th-TH')
+  };
+  records.unshift(record);
+  await saveData();
+  renderTable();
+  renderCalendar();
+  if (selectedDate) renderDetail(selectedDate);
+  clearForm();
+  setDefaultDates();
+  showToast('✅ บันทึกการลาเรียบร้อย', 'success');
+}
+
+// ══════════ GCAL URL ══════════
+function buildGCalUrl(r) {
+  const icon = TYPE_ICONS[r.type] || '📅';
+  const title = encodeURIComponent(`${icon} ${r.type} — ${r.name}`);
+  const s = r.start.replace(/-/g,'');
+  const ed = new Date(r.end); ed.setDate(ed.getDate()+1);
+  const e = ed.toISOString().split('T')[0].replace(/-/g,'');
+  let d = `ประเภทการลา: ${r.type}\nจำนวน: ${r.days} วัน`;
+  if (r.lab)     d += `\nห้องปฏิบัติการ: ${r.lab}`;
+  if (r.meeting) d += `\nรายละเอียดการประชุม: ${r.meeting}`;
+  if (r.note)    d += `\nหมายเหตุ: ${r.note}`;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${s}/${e}&details=${encodeURIComponent(d)}`;
+}
+
+// ══════════ TABLE ══════════
+function renderTable() {
+  const search = document.getElementById('search-name').value.toLowerCase();
+  const tf = document.getElementById('filter-type').value;
+  const filtered = records.filter(r =>
+    (!search || r.name.toLowerCase().includes(search)) && (!tf || r.type === tf)
+  );
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+  if (filtered.length === 0) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = filtered.map((r,i) => `
+    <tr>
+      <td style="color:#9ca3af;font-size:0.78rem">${filtered.length-i}</td>
+      <td><strong>${r.name}</strong></td>
+      <td style="color:#6b7280;font-size:0.82rem">${r.lab||'—'}</td>
+      <td><span class="leave-badge ${TYPE_CLS[r.type]||'leave-other'}">${r.type}</span></td>
+      <td>${fmtDate(r.start)}</td>
+      <td>${fmtDate(r.end)}</td>
+      <td style="text-align:center"><strong>${r.days}</strong></td>
+      <td style="color:#6b7280;font-size:0.8rem;max-width:180px">
+        ${r.meeting?`<span style="color:#0e7490">🎤 ${r.meeting}</span>${r.note?'<br>':''}`:'' }
+        ${r.note||(!r.meeting?'—':'')}
+      </td>
+      <td><a class="btn-gcal" href="${buildGCalUrl(r)}" target="_blank">📅 เพิ่ม</a></td>
+      <td><button class="btn-del" onclick="deleteRecord('${r.id}')">🗑️</button></td>
+    </tr>`).join('');
+}
+async function deleteRecord(id) {
+  if (!confirm('ต้องการลบรายการนี้?')) return;
+  records = records.filter(r => r.id !== id);
+  await saveData();
+  renderTable(); renderCalendar();
+  if (selectedDate) renderDetail(selectedDate);
+  showToast('ลบรายการแล้ว');
+}
+function exportCSV() {
+  if (!records.length) { showToast('ไม่มีข้อมูลให้ Export','error'); return; }
+  const h = ['ลำดับ','ชื่อ-นามสกุล','ห้องปฏิบัติการ','ประเภทการลา','วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวัน','รายละเอียดการประชุม','หมายเหตุ','บันทึกเมื่อ'];
+  const rows = records.map((r,i) => [i+1,r.name,r.lab||'',r.type,r.start,r.end,r.days,r.meeting||'',r.note||'',r.createdAt||'']);
+  const csv = '﻿' + [h,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `leave_${toDateStr(today)}.csv`; a.click();
+  showToast('Export CSV สำเร็จ','success');
+}
+
+// ══════════ CALENDAR ══════════
+function renderCalendar() {
+  document.getElementById('cal-title').textContent = `${TH_MONTHS[calMonth+1]} ${calYear+543}`;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach((d,i) => {
+    const el = document.createElement('div');
+    el.className = 'day-header' + (i===0||i===6?' weekend':'');
+    el.textContent = d; grid.appendChild(el);
+  });
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = toDateStr(today);
+  for (let i=firstDay-1;i>=0;i--) {
+    const m=calMonth===0?11:calMonth-1, y=calMonth===0?calYear-1:calYear;
+    grid.appendChild(mkCell(y,m,daysInPrev-i,true,todayStr));
+  }
+  for (let d=1;d<=daysInMonth;d++) grid.appendChild(mkCell(calYear,calMonth,d,false,todayStr));
+  const total=firstDay+daysInMonth, rem=total%7===0?0:7-total%7;
+  for (let d=1;d<=rem;d++) {
+    const m=calMonth===11?0:calMonth+1, y=calMonth===11?calYear+1:calYear;
+    grid.appendChild(mkCell(y,m,d,true,todayStr));
+  }
+}
+function mkCell(year,month,day,other,todayStr) {
+  const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const dow = new Date(year,month,day).getDay();
+  const cell = document.createElement('div');
+  cell.className = 'day-cell'
+    + (other?' other-month':'')
+    + (!other&&(dow===0||dow===6)?' weekend':'')
+    + (dateStr===todayStr?' today':'')
+    + (dateStr===selectedDate?' selected':'');
+  const num = document.createElement('div');
+  num.className = 'day-num'; num.textContent = day; cell.appendChild(num);
+  if (!other) {
+    const dr = onDate(dateStr);
+    if (dr.length) {
+      const dots = document.createElement('div'); dots.className='leave-dots';
+      dr.slice(0,2).forEach(r => {
+        const dot = document.createElement('div');
+        dot.className = 'leave-dot ' + (DOT_CLS[r.type]||'dot-other');
+        dot.textContent = r.name.split(' ')[0]; dots.appendChild(dot);
+      });
+      if (dr.length>2) { const m=document.createElement('div'); m.className='more-dot'; m.textContent=`+${dr.length-2}`; dots.appendChild(m); }
+      cell.appendChild(dots);
+    }
+    cell.onclick = () => { selectedDate=dateStr; renderCalendar(); renderDetail(dateStr); };
+  }
+  return cell;
+}
+function renderDetail(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dow = new Date(y,m-1,d).getDay();
+  document.getElementById('detail-title').textContent = `วัน${DAY_NAMES[dow]}ที่ ${d} ${TH_MONTHS[m]} ${y+543}`;
+  const dr = onDate(dateStr);
+  document.getElementById('detail-count').textContent = dr.length>0?`${dr.length} รายการ`:'';
+  const body = document.getElementById('detail-body');
+  if (!dr.length) { body.innerHTML=`<div class="empty-state"><span class="icon">✅</span>ไม่มีรายการลาในวันนี้</div>`; return; }
+  body.innerHTML = dr.map(r => {
+    const icon = TYPE_ICONS[r.type]||'📅';
+    const bst  = BADGE_STYLE[r.type]||'background:#f3f4f6;color:#374151';
+    const range = r.start===r.end ? fmtDate(r.start) : `${fmtDate(r.start)} – ${fmtDate(r.end)}`;
+    return `<div class="leave-item">
+      <div class="leave-icon">${icon}</div>
+      <div class="leave-info">
+        <div class="leave-name">${r.name}<span class="leave-badge-sm" style="${bst}">${r.type}</span></div>
+        <div class="leave-meta">
+          ${r.lab?`<span>🔬 ${r.lab}</span>`:''}
+          <span>📅 ${range}</span>
+          <span>⏱ ${r.days} วัน</span>
+        </div>
+        ${r.meeting?`<div class="detail-meeting">🎤 ${r.meeting}</div>`:''}
+        ${r.note?`<div class="detail-note">💬 ${r.note}</div>`:''}
+        <div class="detail-note">🕐 บันทึกเมื่อ ${r.createdAt||'—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function changeMonth(d) {
+  calMonth+=d;
+  if (calMonth>11){calMonth=0;calYear++;}
+  if (calMonth<0){calMonth=11;calYear--;}
+  renderCalendar();
+}
+function calToday() {
+  calYear=today.getFullYear(); calMonth=today.getMonth();
+  selectedDate=toDateStr(today);
+  renderCalendar(); renderDetail(selectedDate);
+}
+
+// ══════════ REPORT ══════════
+function reportToday() {
+  document.getElementById('report-date').value = toDateStr(today);
+  renderReport();
+}
+function renderReport() {
+  const dateStr = document.getElementById('report-date').value;
+  if (!dateStr) return;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dow = new Date(y,m-1,d).getDay();
+  const dateLabel = `วัน${DAY_NAMES[dow]}ที่ ${d} ${TH_MONTHS[m]} ${y+543}`;
+  const dr = onDate(dateStr);
+  document.getElementById('rpt-title').textContent = `รายการลา — ${dateLabel}`;
+  const badge = document.getElementById('rpt-badge');
+  badge.textContent = `${dr.length} คน`;
+  badge.className = 'count-badge' + (dr.length===0?' zero':'');
+  const body = document.getElementById('rpt-body');
+  if (!dr.length) {
+    body.innerHTML=`<div class="empty-state"><span class="icon">✅</span>ไม่มีบุคลากรลาในวันนี้</div>`;
+  } else {
+    body.innerHTML = dr.map(r => {
+      const range = r.start===r.end ? fmtDate(r.start) : `${fmtDate(r.start)} – ${fmtDate(r.end)}`;
+      return `<div class="rpt-row">
+        <div class="leave-icon">${TYPE_ICONS[r.type]||'📅'}</div>
+        <div class="rpt-info">
+          <div class="rpt-name">${r.name}</div>
+          <div class="rpt-tags">
+            <span class="rtag ${RTAG_CLS[r.type]||'rtag-other'}">${r.type}</span>
+            ${r.lab?`<span class="rtag rtag-lab">🔬 ${r.lab}</span>`:''}
+            <span class="rtag rtag-date">📅 ${range} (${r.days} วัน)</span>
+          </div>
+          ${r.meeting?`<div style="font-size:0.78rem;color:#0e7490;margin-top:4px">🎤 ${r.meeting}</div>`:''}
+          ${r.note?`<div style="font-size:0.77rem;color:#6b7280;margin-top:3px;font-style:italic">💬 ${r.note}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Line message
+  let msg = `📋 รายงานการลาประจำวัน\nภาควิชาเวชศาสตร์การธนาคารเลือด\n📅 ${dateLabel}\n${'─'.repeat(28)}\n`;
+  if (!dr.length) {
+    msg += `✅ ไม่มีบุคลากรลาในวันนี้\n`;
+  } else {
+    msg += `👥 มีบุคลากรลา ${dr.length} คน\n\n`;
+    ['ลาป่วย','ลาพักร้อน','ลากิจ','ลาประชุม','ลาคลอด','ลาบวช','ลาอื่นๆ'].forEach(type => {
+      const g = dr.filter(r=>r.type===type);
+      if (!g.length) return;
+      msg += `${TYPE_ICONS[type]} ${type} (${g.length} คน)\n`;
+      g.forEach(r => {
+        const range = r.start===r.end ? fmtDate(r.start) : `${fmtDate(r.start)} – ${fmtDate(r.end)}`;
+        msg += `  • ${r.name}`;
+        if (r.lab) msg += ` [${r.lab}]`;
+        msg += ` (${r.days} วัน: ${range})`;
+        if (r.meeting) msg += `\n    📍 ${r.meeting}`;
+        if (r.note)    msg += `\n    💬 ${r.note}`;
+        msg += `\n`;
+      });
+      msg += `\n`;
+    });
+  }
+  msg += `${'─'.repeat(28)}\n🕐 ${new Date().toLocaleString('th-TH')}`;
+  document.getElementById('line-preview').textContent = msg;
+}
+// ══════════ EXPORT EXCEL ══════════
+function exportExcel() {
+  if (!records.length) { showToast('ไม่มีข้อมูลให้ Export','error'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: ข้อมูลทั้งหมด ──
+  const headers = ['ลำดับ','ชื่อ-นามสกุล','ห้องปฏิบัติการ','ประเภทการลา',
+                   'วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวัน (วัน)',
+                   'รายละเอียดการประชุม','หมายเหตุ','วันที่บันทึก'];
+  const rows = records.map((r, i) => [
+    i + 1, r.name, r.lab || '', r.type,
+    r.start, r.end, r.days,
+    r.meeting || '', r.note || '', r.createdAt || ''
+  ]);
+
+  const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Column widths
+  ws1['!cols'] = [
+    {wch:6},{wch:22},{wch:20},{wch:14},
+    {wch:13},{wch:13},{wch:12},
+    {wch:30},{wch:24},{wch:22}
+  ];
+
+  // Style header row
+  headers.forEach((_, ci) => {
+    const addr = XLSX.utils.encode_cell({r:0, c:ci});
+    if (!ws1[addr]) return;
+    ws1[addr].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 11 },
+      fill: { fgColor: { rgb: '1E3A8A' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: {
+        top:    { style:'thin', color:{ rgb:'AAAAAA' } },
+        bottom: { style:'thin', color:{ rgb:'AAAAAA' } },
+        left:   { style:'thin', color:{ rgb:'AAAAAA' } },
+        right:  { style:'thin', color:{ rgb:'AAAAAA' } }
+      }
+    };
+  });
+
+  // Style data rows
+  const typeColors = {
+    'ลาป่วย':'FEE2E2','ลาพักร้อน':'DBEAFE','ลากิจ':'FEF3C7',
+    'ลาประชุม':'CFFAFE','ลาคลอด':'FCE7F3','ลาบวช':'EDE9FE','ลาอื่นๆ':'F3F4F6'
+  };
+  rows.forEach((row, ri) => {
+    const type  = row[3];
+    const bgHex = ri % 2 === 0 ? 'FFFFFF' : 'F8FAFF';
+    row.forEach((_, ci) => {
+      const addr = XLSX.utils.encode_cell({r: ri+1, c: ci});
+      if (!ws1[addr]) ws1[addr] = { t:'s', v:'' };
+      const isTypecol = ci === 3;
+      ws1[addr].s = {
+        font: { name: 'Arial', sz: 10,
+                color: isTypecol ? { rgb: '374151' } : { rgb: '1A202C' } },
+        fill: { fgColor: { rgb: isTypecol ? (typeColors[type]||'F3F4F6') : bgHex } },
+        alignment: { vertical:'center', wrapText: true,
+                     horizontal: (ci===0||ci===6) ? 'center' : 'left' },
+        border: {
+          top:    { style:'thin', color:{ rgb:'E5E7EB' } },
+          bottom: { style:'thin', color:{ rgb:'E5E7EB' } },
+          left:   { style:'thin', color:{ rgb:'E5E7EB' } },
+          right:  { style:'thin', color:{ rgb:'E5E7EB' } }
+        }
+      };
+    });
+  });
+
+  // Freeze header row
+  ws1['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'ข้อมูลการลาทั้งหมด');
+
+  // ── Sheet 2: สรุปรายประเภท ──
+  const types  = ['ลาป่วย','ลาพักร้อน','ลากิจ','ลาประชุม','ลาคลอด','ลาบวช','ลาอื่นๆ'];
+  const sumH   = ['ประเภทการลา','จำนวนครั้ง','รวมวันลา','เฉลี่ยวัน/ครั้ง'];
+  const sumRows = types.map(t => {
+    const g = records.filter(r => r.type === t);
+    const totalDays = g.reduce((a,r)=>a+r.days,0);
+    return [t, g.length, totalDays, g.length ? (totalDays/g.length).toFixed(1) : '-'];
+  });
+  sumRows.push(['รวมทั้งหมด', records.length, records.reduce((a,r)=>a+r.days,0), '']);
+
+  const ws2 = XLSX.utils.aoa_to_sheet([sumH, ...sumRows]);
+  ws2['!cols'] = [{wch:16},{wch:14},{wch:14},{wch:16}];
+
+  sumH.forEach((_, ci) => {
+    const addr = XLSX.utils.encode_cell({r:0, c:ci});
+    if (!ws2[addr]) return;
+    ws2[addr].s = {
+      font: { bold:true, color:{ rgb:'FFFFFF' }, name:'Arial', sz:11 },
+      fill: { fgColor:{ rgb:'059669' } },
+      alignment: { horizontal:'center', vertical:'center' },
+      border: { top:{style:'thin',color:{rgb:'AAAAAA'}}, bottom:{style:'thin',color:{rgb:'AAAAAA'}}, left:{style:'thin',color:{rgb:'AAAAAA'}}, right:{style:'thin',color:{rgb:'AAAAAA'}} }
+    };
+  });
+  sumRows.forEach((row, ri) => {
+    const isTotal = ri === sumRows.length - 1;
+    row.forEach((_, ci) => {
+      const addr = XLSX.utils.encode_cell({r:ri+1, c:ci});
+      if (!ws2[addr]) ws2[addr] = { t:'s', v:'' };
+      ws2[addr].s = {
+        font: { name:'Arial', sz:10, bold: isTotal },
+        fill: { fgColor:{ rgb: isTotal ? 'D1FAE5' : (ri%2===0?'FFFFFF':'F0FDF4') } },
+        alignment: { horizontal: ci===0?'left':'center', vertical:'center' },
+        border: { top:{style:'thin',color:{rgb:'E5E7EB'}}, bottom:{style:'thin',color:{rgb:'E5E7EB'}}, left:{style:'thin',color:{rgb:'E5E7EB'}}, right:{style:'thin',color:{rgb:'E5E7EB'}} }
+      };
+    });
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws2, 'สรุปรายประเภท');
+
+  // ── Download ──
+  const dateStr = toDateStr(today).replace(/-/g,'');
+  XLSX.writeFile(wb, `ข้อมูลการลา_${dateStr}.xlsx`, { bookType:'xlsx', cellStyles:true });
+  showToast('📊 Export Excel สำเร็จ','success');
+}
+
+function copyLine() {
+  navigator.clipboard.writeText(document.getElementById('line-preview').textContent).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='✅ คัดลอกแล้ว'; btn.className='btn-copy copied';
+    showToast('คัดลอกข้อความแล้ว — วางใน Line ได้เลย','success');
+    setTimeout(()=>{btn.textContent='📋 คัดลอก';btn.className='btn-copy';},2500);
+  });
+}
+</script>
+</body>
+</html>
