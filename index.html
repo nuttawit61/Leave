@@ -121,6 +121,12 @@ textarea { resize: vertical; min-height: 68px; }
 }
 #meeting-field label { color: #1e40af; }
 #meeting-field textarea { border-color: #93c5fd; background: white; }
+#speaker-field {
+  background: #fff7ed; border: 1.5px solid #fed7aa;
+  border-radius: 10px; padding: 12px 14px;
+}
+#speaker-field label { color: #c2410c; }
+#speaker-field textarea { border-color: #fdba74; background: white; }
 
 /* Leave badges */
 .leave-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
@@ -128,6 +134,7 @@ textarea { resize: vertical; min-height: 68px; }
 .leave-vacation  { background: #dbeafe; color: #1e40af; }
 .leave-personal  { background: #fef3c7; color: #92400e; }
 .leave-meeting   { background: #cffafe; color: #0e7490; }
+.leave-speaker   { background: #fff7ed; color: #c2410c; }
 .leave-maternity { background: #fce7f3; color: #9d174d; }
 .leave-ordination{ background: #ede9fe; color: #5b21b6; }
 .leave-other     { background: #f3f4f6; color: #374151; }
@@ -277,6 +284,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .dot-vacation  { background: #dbeafe; color: #1e40af; }
 .dot-personal  { background: #fef3c7; color: #92400e; }
 .dot-meeting   { background: #cffafe; color: #0e7490; }
+.dot-speaker   { background: #fff7ed; color: #c2410c; }
 .dot-maternity { background: #fce7f3; color: #9d174d; }
 .dot-ordination{ background: #ede9fe; color: #5b21b6; }
 .dot-other     { background: #f3f4f6; color: #374151; }
@@ -305,6 +313,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .leave-meta span { margin-right: 8px; }
 .leave-badge-sm { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; margin-left: 5px; }
 .detail-meeting { font-size: 0.78rem; color: #0e7490; margin-top: 3px; background: #cffafe; padding: 2px 7px; border-radius: 5px; display: inline-block; }
+.detail-speaker { font-size: 0.78rem; color: #c2410c; margin-top: 3px; background: #fff7ed; padding: 2px 7px; border-radius: 5px; display: inline-block; }
 .detail-note { font-size: 0.77rem; color: #6b7280; margin-top: 3px; font-style: italic; }
 
 /* ── Report ── */
@@ -340,6 +349,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .rtag-vacation  { background: #dbeafe; color: #1e40af; }
 .rtag-personal  { background: #fef3c7; color: #92400e; }
 .rtag-meeting   { background: #cffafe; color: #0e7490; }
+.rtag-speaker   { background: #fff7ed; color: #c2410c; }
 .rtag-maternity { background: #fce7f3; color: #9d174d; }
 .rtag-ordination{ background: #ede9fe; color: #5b21b6; }
 .rtag-other     { background: #f3f4f6; color: #374151; }
@@ -525,6 +535,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
         <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#3b82f6"></span>ลาพักผ่อน</span>
         <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#f59e0b"></span>ลากิจ</span>
         <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#06b6d4"></span>ลาประชุม</span>
+        <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#f97316"></span>ลาเป็นวิทยากร</span>
         <span style="display:flex;align-items:center;gap:3px"><span class="legend-dot" style="background:#8b5cf6"></span>ลาอื่นๆ</span>
       </div>
     </div>
@@ -586,6 +597,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
               <option value="ลาพักผ่อน">🏖️ ลาพักผ่อน</option>
               <option value="ลากิจ">📝 ลากิจ</option>
               <option value="ลาประชุม">🎤 ลาประชุม</option>
+              <option value="ลาเป็นวิทยากร">🎙️ ลาเป็นวิทยากร</option>
               <option value="ลาคลอด">🤱 ลาคลอด</option>
               <option value="ลาบวช">🙏 ลาบวช</option>
               <option value="ลาอื่นๆ">📌 ลาอื่นๆ</option>
@@ -631,6 +643,26 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
               </div>
             </div>
           </div>
+          <div class="form-group full" id="speaker-field" style="display:none">
+            <label>รายละเอียดการเป็นวิทยากร *</label>
+            <textarea id="f-speaker" placeholder="เช่น ชื่องาน/หัวข้อ, สถานที่, หน่วยงานที่จัด"></textarea>
+            <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;align-items:center">
+              <div style="display:flex;gap:8px">
+                <label style="display:flex;align-items:center;gap:5px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:6px 14px;cursor:pointer;margin-bottom:0;font-weight:600;font-size:0.82rem">
+                  <input type="radio" name="f-sptype" value="Onsite" checked style="padding:0;border:none;width:auto"> 🏢 Onsite
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:6px 14px;cursor:pointer;margin-bottom:0;font-weight:600;font-size:0.82rem">
+                  <input type="radio" name="f-sptype" value="Online" style="padding:0;border:none;width:auto"> 💻 Online
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <label style="margin-bottom:0;font-size:0.82rem;white-space:nowrap">🕐 เวลา</label>
+                <input type="time" id="f-sptime" style="width:120px;padding:6px 10px">
+                <label style="margin-bottom:0;font-size:0.82rem;white-space:nowrap">ถึง</label>
+                <input type="time" id="f-sptime-end" style="width:120px;padding:6px 10px">
+              </div>
+            </div>
+          </div>
           <div class="form-group full">
             <label>หมายเหตุ / เหตุผล</label>
             <textarea id="f-note" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
@@ -666,6 +698,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
             <option value="ลาพักผ่อน">ลาพักผ่อน</option>
             <option value="ลากิจ">ลากิจ</option>
             <option value="ลาประชุม">ลาประชุม</option>
+            <option value="ลาเป็นวิทยากร">ลาเป็นวิทยากร</option>
             <option value="ลาคลอด">ลาคลอด</option>
             <option value="ลาบวช">ลาบวช</option>
             <option value="ลาอื่นๆ">ลาอื่นๆ</option>
@@ -817,11 +850,11 @@ async function saveConfig() {
 }
 
 // ══════════ CONFIG ══════════
-const TYPE_ICONS = {'ลาป่วย':'🤒','ลาพักผ่อน':'🏖️','ลากิจ':'📝','ลาประชุม':'🎤','ลาคลอด':'🤱','ลาบวช':'🙏','ลาอื่นๆ':'📌'};
-const TYPE_CLS   = {'ลาป่วย':'leave-sick','ลาพักผ่อน':'leave-vacation','ลากิจ':'leave-personal','ลาประชุม':'leave-meeting','ลาคลอด':'leave-maternity','ลาบวช':'leave-ordination','ลาอื่นๆ':'leave-other'};
-const DOT_CLS    = {'ลาป่วย':'dot-sick','ลาพักผ่อน':'dot-vacation','ลากิจ':'dot-personal','ลาประชุม':'dot-meeting','ลาคลอด':'dot-maternity','ลาบวช':'dot-ordination','ลาอื่นๆ':'dot-other'};
-const RTAG_CLS   = {'ลาป่วย':'rtag-sick','ลาพักผ่อน':'rtag-vacation','ลากิจ':'rtag-personal','ลาประชุม':'rtag-meeting','ลาคลอด':'rtag-maternity','ลาบวช':'rtag-ordination','ลาอื่นๆ':'rtag-other'};
-const BADGE_STYLE= {'ลาป่วย':'background:#fee2e2;color:#b91c1c','ลาพักผ่อน':'background:#dbeafe;color:#1e40af','ลากิจ':'background:#fef3c7;color:#92400e','ลาประชุม':'background:#cffafe;color:#0e7490','ลาคลอด':'background:#fce7f3;color:#9d174d','ลาบวช':'background:#ede9fe;color:#5b21b6','ลาอื่นๆ':'background:#f3f4f6;color:#374151'};
+const TYPE_ICONS = {'ลาป่วย':'🤒','ลาพักผ่อน':'🏖️','ลากิจ':'📝','ลาประชุม':'🎤','ลาเป็นวิทยากร':'🎙️','ลาคลอด':'🤱','ลาบวช':'🙏','ลาอื่นๆ':'📌'};
+const TYPE_CLS   = {'ลาป่วย':'leave-sick','ลาพักผ่อน':'leave-vacation','ลากิจ':'leave-personal','ลาประชุม':'leave-meeting','ลาเป็นวิทยากร':'leave-speaker','ลาคลอด':'leave-maternity','ลาบวช':'leave-ordination','ลาอื่นๆ':'leave-other'};
+const DOT_CLS    = {'ลาป่วย':'dot-sick','ลาพักผ่อน':'dot-vacation','ลากิจ':'dot-personal','ลาประชุม':'dot-meeting','ลาเป็นวิทยากร':'dot-speaker','ลาคลอด':'dot-maternity','ลาบวช':'dot-ordination','ลาอื่นๆ':'dot-other'};
+const RTAG_CLS   = {'ลาป่วย':'rtag-sick','ลาพักผ่อน':'rtag-vacation','ลากิจ':'rtag-personal','ลาประชุม':'rtag-meeting','ลาเป็นวิทยากร':'rtag-speaker','ลาคลอด':'rtag-maternity','ลาบวช':'rtag-ordination','ลาอื่นๆ':'rtag-other'};
+const BADGE_STYLE= {'ลาป่วย':'background:#fee2e2;color:#b91c1c','ลาพักผ่อน':'background:#dbeafe;color:#1e40af','ลากิจ':'background:#fef3c7;color:#92400e','ลาประชุม':'background:#cffafe;color:#0e7490','ลาเป็นวิทยากร':'background:#fff7ed;color:#c2410c','ลาคลอด':'background:#fce7f3;color:#9d174d','ลาบวช':'background:#ede9fe;color:#5b21b6','ลาอื่นๆ':'background:#f3f4f6;color:#374151'};
 const TH_MONTHS  = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const TH_MS      = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const DAY_NAMES  = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
@@ -918,6 +951,7 @@ function showSuccessModal(r) {
     <div>${TYPE_ICONS[r.type]||'📅'} ${r.type}${halfTxt}</div>
     <div>📅 ${range} &nbsp;·&nbsp; ${r.days} วัน</div>
     ${r.meeting?`<div>🎤 ${r.meeting}</div>`:''}
+    ${r.speaker?`<div>🎙️ ${r.speaker}</div>`:''}
     ${r.note?`<div>💬 ${r.note}</div>`:''}
   `;
   document.getElementById('success-modal').classList.remove('hidden');
@@ -967,6 +1001,11 @@ function editRecord(id) {
     if (mtr) mtr.checked = true;
     document.getElementById('f-mtime').value = r.meetingTime || '';
     document.getElementById('f-mtime-end').value = r.meetingTimeEnd || '';
+    document.getElementById('f-speaker').value = r.speaker || '';
+    const st = r.speakerType || 'Onsite';
+    document.querySelectorAll('input[name="f-sptype"]').forEach(i => i.checked = i.value === st);
+    document.getElementById('f-sptime').value = r.speakerTime || '';
+    document.getElementById('f-sptime-end').value = r.speakerTimeEnd || '';
   }
   calcDays();
   // แสดง banner และเปลี่ยนปุ่ม
@@ -1035,10 +1074,20 @@ function calcDays() {
 }
 function toggleMeetingField() {
   const type = document.getElementById('f-type').value;
-  const field = document.getElementById('meeting-field');
-  const ta = document.getElementById('f-meeting');
-  if (type === 'ลาประชุม') { field.style.display = 'flex'; ta.required = true; }
-  else { field.style.display = 'none'; ta.required = false; ta.value = ''; }
+  const mfield = document.getElementById('meeting-field');
+  const mta = document.getElementById('f-meeting');
+  const sfield = document.getElementById('speaker-field');
+  const sta = document.getElementById('f-speaker');
+  if (type === 'ลาประชุม') {
+    mfield.style.display = 'flex'; mta.required = true;
+    sfield.style.display = 'none'; sta.required = false; sta.value = '';
+  } else if (type === 'ลาเป็นวิทยากร') {
+    sfield.style.display = 'flex'; sta.required = true;
+    mfield.style.display = 'none'; mta.required = false; mta.value = '';
+  } else {
+    mfield.style.display = 'none'; mta.required = false; mta.value = '';
+    sfield.style.display = 'none'; sta.required = false; sta.value = '';
+  }
 }
 function clearForm() {
   editingId = null;
@@ -1046,6 +1095,8 @@ function clearForm() {
   document.getElementById('days-display').textContent = '— วัน';
   document.getElementById('meeting-field').style.display = 'none';
   document.getElementById('f-meeting').required = false;
+  document.getElementById('speaker-field').style.display = 'none';
+  document.getElementById('f-speaker').required = false;
   document.getElementById('edit-banner').classList.remove('show');
   document.getElementById('btn-submit').textContent = '💾 บันทึก';
 }
@@ -1066,6 +1117,10 @@ async function handleSubmit(e) {
     meetingType: type === 'ลาประชุม' ? (document.querySelector('input[name="f-mtype"]:checked')?.value || 'Onsite') : '',
     meetingTime:    type === 'ลาประชุม' ? document.getElementById('f-mtime').value : '',
     meetingTimeEnd: type === 'ลาประชุม' ? document.getElementById('f-mtime-end').value : '',
+    speaker:     type === 'ลาเป็นวิทยากร' ? document.getElementById('f-speaker').value.trim() : '',
+    speakerType: type === 'ลาเป็นวิทยากร' ? (document.querySelector('input[name="f-sptype"]:checked')?.value || 'Onsite') : '',
+    speakerTime:    type === 'ลาเป็นวิทยากร' ? document.getElementById('f-sptime').value : '',
+    speakerTimeEnd: type === 'ลาเป็นวิทยากร' ? document.getElementById('f-sptime-end').value : '',
     note: document.getElementById('f-note').value.trim(),
     edoc: document.getElementById('f-edoc').value.trim(),
     createdAt: editingId
@@ -1101,6 +1156,7 @@ function buildGCalUrl(r) {
   let d = `ประเภทการลา: ${r.type}\nจำนวน: ${r.days} วัน`;
   if (r.lab)     d += `\nห้องปฏิบัติการ: ${r.lab}`;
   if (r.meeting) d += `\nรายละเอียดการประชุม: ${r.meeting}`;
+  if (r.speaker) d += `\nรายละเอียดการเป็นวิทยากร: ${r.speaker}`;
   if (r.note)    d += `\nหมายเหตุ: ${r.note}`;
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${s}/${e}&details=${encodeURIComponent(d)}`;
 }
@@ -1140,7 +1196,7 @@ function renderTable() {
       <td style="color:#6b7280;font-size:0.8rem;max-width:180px">
         ${r.meeting?`<span style="color:#0e7490">🎤 ${r.meeting}${r.meetingType?' ('+r.meetingType+')':''}${r.meetingTime?' '+r.meetingTime:''}
         </span>${r.note?'<br>':''}`:'' }
-        ${r.note||(!r.meeting?'—':'')}
+        ${r.note||(!r.meeting&&!r.speaker?'—':'')}
       </td>
       <td style="text-align:center">
         ${r.edoc?`<a href="${r.edoc}" target="_blank" style="color:#1d4ed8;font-size:0.8rem;text-decoration:none">📄 E-DOC</a>`:'—'}
@@ -1162,8 +1218,8 @@ async function deleteRecord(id) {
 }
 function exportCSV() {
   if (!records.length) { showToast('ไม่มีข้อมูลให้ Export','error'); return; }
-  const h = ['ลำดับ','ชื่อ-นามสกุล','ห้องปฏิบัติการ','ประเภทการลา','วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวัน','รายละเอียดการประชุม','หมายเหตุ','URL E-DOC','บันทึกเมื่อ'];
-  const rows = records.map((r,i) => [i+1,r.name,r.lab||'',r.type,r.start,r.end,r.days,r.meeting||'',r.note||'',r.edoc||'',r.createdAt||'']);
+  const h = ['ลำดับ','ชื่อ-นามสกุล','ห้องปฏิบัติการ','ประเภทการลา','วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวัน','รายละเอียดการประชุม','รายละเอียดการเป็นวิทยากร','หมายเหตุ','URL E-DOC','บันทึกเมื่อ'];
+  const rows = records.map((r,i) => [i+1,r.name,r.lab||'',r.type,r.start,r.end,r.days,r.meeting||'',r.speaker||'',r.note||'',r.edoc||'',r.createdAt||'']);
   const csv = '﻿' + [h,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
@@ -1245,6 +1301,7 @@ function renderDetail(dateStr) {
           <span>⏱ ${r.days} วัน</span>
         </div>
         ${r.meeting?`<div class="detail-meeting">🎤 ${r.meeting}</div>`:''}
+        ${r.speaker?`<div class="detail-speaker">🎙️ ${r.speaker}</div>`:''}
         ${r.note?`<div class="detail-note">💬 ${r.note}</div>`:''}
         <div class="detail-note">🕐 บันทึกเมื่อ ${r.createdAt||'—'}</div>
       </div>
@@ -1301,6 +1358,7 @@ function renderReport() {
               <span class="rtag rtag-date">📅 ${range} (${r.days} วัน)</span>
             </div>
             ${r.meeting?`<div style="font-size:0.78rem;color:#0e7490;margin-top:4px">🎤 ${r.meeting}${r.meetingType?' · '+r.meetingType:''}${r.meetingTime?' · '+r.meetingTime+(r.meetingTimeEnd?' – '+r.meetingTimeEnd:'')+ ' น.':''}</div>`:''}
+            ${r.speaker?`<div style="font-size:0.78rem;color:#c2410c;margin-top:4px">🎙️ ${r.speaker}${r.speakerType?' · '+r.speakerType:''}${r.speakerTime?' · '+r.speakerTime+(r.speakerTimeEnd?' – '+r.speakerTimeEnd:'')+ ' น.':''}</div>`:''}
             ${r.note?`<div style="font-size:0.77rem;color:#6b7280;margin-top:3px;font-style:italic">💬 ${r.note}</div>`:''}
           </div>
         </div>`;
@@ -1332,7 +1390,8 @@ function renderReport() {
         const range = r.start===r.end ? fmtDate(r.start) : `${fmtDate(r.start)} – ${fmtDate(r.end)}`;
         const halfTxt = r.half && r.half!=='none' ? ` [${r.half==='morning'?'ครึ่งวันเช้า':'ครึ่งวันบ่าย'}]` : '';
         msg += `  • ${r.name}${halfTxt} — ${r.type} (${r.days} วัน)`;
-        if (r.meeting) msg += `\n    📍 ${r.meeting}${r.meetingType?' ('+r.meetingType+')':''}${r.meetingTime?' เวลา '+r.meetingTime+(r.meetingTimeEnd?' – '+r.meetingTimeEnd:'')+ ' น.':''}`;
+        if (r.meeting) msg += `\n    📍 ${r.meeting}${r.meetingType?' ('+r.meetingType+')':''}${r.meetingTime?' เวลา '+r.meetingTime+(r.meetingTimeEnd?' – '+r.meetingTimeEnd:'')+ ' น.':''}`;        
+        if (r.speaker) msg += `\n    🎙️ ${r.speaker}${r.speakerType?' ('+r.speakerType+')':''}${r.speakerTime?' เวลา '+r.speakerTime+(r.speakerTimeEnd?' – '+r.speakerTimeEnd:'')+ ' น.':''}`;
         if (r.note)    msg += `\n    💬 ${r.note}`;
         msg += `\n`;
       });
@@ -1351,11 +1410,11 @@ function exportExcel() {
   // ── Sheet 1: ข้อมูลทั้งหมด ──
   const headers = ['ลำดับ','ชื่อ-นามสกุล','ห้องปฏิบัติการ','ประเภทการลา',
                    'วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวัน (วัน)',
-                   'รายละเอียดการประชุม','หมายเหตุ','วันที่บันทึก'];
+                   'รายละเอียดการประชุม','รายละเอียดการเป็นวิทยากร','หมายเหตุ','วันที่บันทึก'];
   const rows = records.map((r, i) => [
     i + 1, r.name, r.lab || '', r.type,
     r.start, r.end, r.days,
-    r.meeting || '', r.note || '', r.createdAt || ''
+    r.meeting || '', r.speaker || '', r.note || '', r.createdAt || ''
   ]);
 
   const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
